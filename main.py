@@ -20,9 +20,16 @@ def main():
     parser.add_argument('--sources', '-s', default=default_sources)
     args = parser.parse_args()
 
-    if not os.path.exists(args.sources):
-        print(f"File not found: {args.sources}")
-        return 1
+    sources_path = os.path.abspath(args.sources)
+    if not os.path.exists(sources_path):
+        try:
+            with open(sources_path, 'w', encoding='utf-8') as f:
+                f.write("# https://google.com...\n")
+            print(f"File created: {args.sources}")
+            return 0
+        except Exception as e:
+            print(f"Error creating file: {e}")
+            return 1
 
     with open(args.sources, 'r', encoding='utf-8') as f:
         urls = [line.strip() for line in f if line.strip() and not line.startswith('#')]
