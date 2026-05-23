@@ -1,0 +1,18 @@
+# Ключи доступа
+credentials.json
+
+merged_data.json
+sources.txt
+.vscode/
+
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+
+# Временные файлы
+*.log
+*.tmp
