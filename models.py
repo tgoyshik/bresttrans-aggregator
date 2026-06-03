@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional
 
@@ -14,7 +14,8 @@ class BusRecordModel(BaseModel):
     weather: str
     student: Optional[str] = None
 
-    @validator('time')
+    @field_validator('time')
+    @classmethod
     def validate_time(cls, v):
         try:
             datetime.strptime(v, "%Y-%m-%d %H:%M:%S")
@@ -22,7 +23,8 @@ class BusRecordModel(BaseModel):
         except ValueError:
             raise ValueError(f'Format error: {v}')
 
-    @validator('peopleAtStop', 'entered', 'exited')
+    @field_validator('peopleAtStop', 'entered', 'exited')
+    @classmethod
     def validate_numbers(cls, v):
         if not v.isdigit():
             raise ValueError(f'Not a number: {v}')
