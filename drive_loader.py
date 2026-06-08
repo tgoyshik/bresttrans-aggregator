@@ -16,6 +16,9 @@ class GoogleDriveBusLoader:
         self.service = self._authenticate()
     
     def _authenticate(self):
+        if not os.path.exists(self.credentials_file):
+            raise FileNotFoundError(f"Файл ключей не найден по пути: {self.credentials_file}")
+            
         try:
             credentials = service_account.Credentials.from_service_account_file(
                 self.credentials_file, 
@@ -23,8 +26,7 @@ class GoogleDriveBusLoader:
             )
             return build('drive', 'v3', credentials=credentials)
         except Exception as e:
-            print(f"Auth error: {e}")
-            return None
+            raise RuntimeError(f"Критическая ошибка инициализации Google API: {e}")
 
     def extract_folder_id(self, url: str) -> Optional[str]:
         patterns = [
@@ -40,9 +42,16 @@ class GoogleDriveBusLoader:
     def download_all_from_folder(self, folder_url: str, destination_dir: str) -> List[str]:
         downloaded_files = []
         folder_id = self.extract_folder_id(folder_url)
-        if not folder_id or not self.service:
-            return []
+        
+        if not folder_id:
+            raise ValueError("Некорректный формат ссылки (не найден ID папки)")
+            
+        if self.service is None:
+            raise RuntimeError("Клиент Google Drive не инициализирован. Проверьте credentials.json")
+            
         try:
+            self.service.files().get(fileId=folder_id, fields="id, name").execute()
+            
             results = self.service.files().list(
                 q=f"'{folder_id}' in parents and trashed = false",
                 fields="files(id, name)"
@@ -53,10 +62,6 @@ class GoogleDriveBusLoader:
 
             for file in json_files:
                 dest = os.path.join(destination_dir, file['name'])
-                if os.path.exists(dest):
-                    downloaded_files.append(dest)
-                    continue
-
                 request = self.service.files().get_media(fileId=file['id'])
                 with io.FileIO(dest, 'wb') as fh:
                     downloader = MediaIoBaseDownload(fh, request)
@@ -64,7 +69,12 @@ class GoogleDriveBusLoader:
                     while not done:
                         _, done = downloader.next_chunk()
                 downloaded_files.append(dest)
+                
             return downloaded_files
+            
         except Exception as e:
-            print(f"Download error for folder {folder_id}: {e}")
-            return []
+            error_msg = str(e)
+            if "404" in error_msg or "403" in error_msg or "not found" in error_msg.lower() or "permission" in error_msg.lower():
+                raise PermissionError("Доступ ограничен или папка не существует")
+            else:
+                raise RuntimeError(f"Сбой Google Drive API: {error_msg}")

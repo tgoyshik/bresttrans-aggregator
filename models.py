@@ -4,8 +4,8 @@ from typing import Optional
 
 class BusRecordModel(BaseModel):
     time: str
-    currentStop: str = Field(..., min_length=2)
-    nextStop: str = Field(..., min_length=2)
+    currentStop: str
+    nextStop: str
     peopleAtStop: str
     entered: str
     exited: str

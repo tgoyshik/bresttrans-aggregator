@@ -25,5 +25,7 @@ class BusDataValidator:
             else:
                 return False, [], errors if errors else ["File is empty"]
                 
+        except json.JSONDecodeError as e:
+            return False, [], [f"[JSON_SYNTAX_ERROR] {str(e)}"]
         except Exception as e:
             return False, [], [str(e)]
